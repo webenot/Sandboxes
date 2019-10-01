@@ -16,7 +16,7 @@ const events = require('events');
 // Create a hash and turn it into the sandboxed context which will be
 // the global context of an application
 const context = {
-  module: {}, console,
+  module: {}, console, setTimeout, setInterval, clearInterval,
   require: name => {
     if (name === 'fs') {
       console.log('Module fs is restricted');

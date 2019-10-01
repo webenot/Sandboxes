@@ -13,6 +13,17 @@ console.dir({ fs, net }, { depth: 1 });
 console.dir({ global }, { depth: 1 });
 console.dir({ api }, { depth: 2 });
 
+setTimeout(() => {
+  console.log('setTimeout added to context');
+}, 300);
+
+let counter = 0;
+const timer = setInterval(() => {
+  console.log('setInterval added to context');
+  counter++;
+  if (counter > 3) clearInterval(timer);
+}, 300);
+
 module.exports = () => {
   // Print from the exported function context
   console.log('From application exported function');
