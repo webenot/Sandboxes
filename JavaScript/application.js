@@ -24,6 +24,8 @@ const timer = setInterval(() => {
   if (counter > 3) clearInterval(timer);
 }, 300);
 
+require('util1');
+
 module.exports = () => {
   // Print from the exported function context
   console.log('From application exported function');

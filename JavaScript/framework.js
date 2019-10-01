@@ -22,7 +22,13 @@ const context = {
       console.log('Module fs is restricted');
       return null;
     }
-    return require(name);
+    let util;
+    try {
+      util = require(`./utils/${name}`);
+    } catch (e) {
+      util = require(name);
+    }
+    return util;
   }
 };
 
