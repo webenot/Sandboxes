@@ -39,7 +39,27 @@ const sandbox = vm.createContext(context);
 const api = { timers,  events };
 
 // Read an application source code from the file
-const fileName = './application.js';
+const args = process.argv.slice(2);
+let appName = args[0];
+if (appName) {
+  if (appName.indexOf('.js') === -1) {
+    let files;
+    try {
+      files = fs.readdirSync(`./${appName}`, { withFileTypes: true, });
+      appName = `./${appName}/index.js`;
+    } catch (e) {
+      appName += '.js';
+      files = fs.readFileSync(`./${appName}`);
+      if (!files) {
+        appName = './application.js';
+      }
+    }
+    console.log({ files });
+  } else {
+    fs.readdirSync(`./${appName}`, { withFileTypes: true, });
+  }
+}
+const fileName = appName;
 fs.readFile(fileName, 'utf8', (err, src) => {
   // We need to handle errors here
 
