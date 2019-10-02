@@ -28,6 +28,7 @@ const context = {
     } catch (e) {
       util = require(name);
     }
+    console.log(`required ${name}`);
     return util;
   }
 };
@@ -41,25 +42,28 @@ const api = { timers,  events };
 // Read an application source code from the file
 const args = process.argv.slice(2);
 let appName = args[0];
+let fileName = '';
 if (appName) {
   if (appName.indexOf('.js') === -1) {
     let files;
     try {
       files = fs.readdirSync(`./${appName}`, { withFileTypes: true, });
-      appName = `./${appName}/index.js`;
+      fileName = `./${appName}/index.js`;
     } catch (e) {
-      appName += '.js';
-      files = fs.readFileSync(`./${appName}`);
+      fileName = `${appName}.js`;
+      files = fs.readFileSync(`./${fileName}`);
       if (!files) {
-        appName = './application.js';
+        fileName = './application.js';
       }
     }
-    console.log({ files });
   } else {
     fs.readdirSync(`./${appName}`, { withFileTypes: true, });
   }
+} else {
+  fileName = './application.js';
+  appName = 'application';
 }
-const fileName = appName;
+
 fs.readFile(fileName, 'utf8', (err, src) => {
   // We need to handle errors here
 
@@ -90,6 +94,18 @@ fs.readFile(fileName, 'utf8', (err, src) => {
   // We can access a link to exported interface from sandbox.module.exports
   // to execute, save to the cache, print to console, etc.
 });
+
+// Intercept console.log
+const logger = context.console.log;
+context.console.log = (...args) => {
+  const time = new Date();
+  const message = [...args].join(' ');
+  const logMessage = `${appName} ${time.toISOString()} ${message}`;
+  logger(logMessage);
+  fs.appendFile('log.txt', `${logMessage}\n`, (err) => {
+    if (err) throw err;
+  });
+};
 
 process.on('uncaughtException', err => {
   console.log('Unhandled exception: ' + err);
