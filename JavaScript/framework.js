@@ -84,7 +84,16 @@ fs.readFile(fileName, 'utf8', (err, src) => {
     const f = script.runInNewContext(sandbox, { timeout: EXECUTION_TIMEOUT });
     f(api);
     const exported = sandbox.module.exports;
-    console.dir({ exported });
+    const result = {};
+    for (const exp in exported) {
+      if (Object.prototype.hasOwnProperty.call(exported, exp)) {
+        result[exp] = {
+          data: exported[exp],
+          type: typeof exported[exp],
+        };
+      }
+    }
+    console.dir({ exported: result });
   } catch (e) {
     console.dir(e);
     console.log('Execution timeout');
