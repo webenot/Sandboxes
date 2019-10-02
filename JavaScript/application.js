@@ -45,4 +45,5 @@ module.exports = {
     console.log('From application exported function');
   },
   hash: crypto.createHash('sha256').digest('hex'),
+  global,
 };
