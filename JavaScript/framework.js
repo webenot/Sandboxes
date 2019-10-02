@@ -87,10 +87,16 @@ fs.readFile(fileName, 'utf8', (err, src) => {
     const result = {};
     for (const exp in exported) {
       if (Object.prototype.hasOwnProperty.call(exported, exp)) {
+        const type = typeof exported[exp];
+
         result[exp] = {
           data: exported[exp],
-          type: typeof exported[exp],
+          type,
         };
+        if (type === 'function') {
+          result[exp].argsLength = exported[exp].length;
+          result[exp].code = exported[exp] + '';
+        }
       }
     }
     console.dir({ exported: result });
