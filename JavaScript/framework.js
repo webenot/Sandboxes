@@ -28,6 +28,7 @@ const context = {
     } catch (e) {
       util = require(name);
     }
+    console.log(`required ${name}`);
     return util;
   }
 };
@@ -55,7 +56,6 @@ if (appName) {
         fileName = './application.js';
       }
     }
-    console.log({ files });
   } else {
     fs.readdirSync(`./${appName}`, { withFileTypes: true, });
   }
@@ -97,7 +97,6 @@ fs.readFile(fileName, 'utf8', (err, src) => {
 
 // Intercept console.log
 const logger = context.console.log;
-
 context.console.log = (...args) => {
   const time = new Date();
   const message = [...args].join(' ');
@@ -105,7 +104,6 @@ context.console.log = (...args) => {
   logger(logMessage);
   fs.appendFile('log.txt', `${logMessage}\n`, (err) => {
     if (err) throw err;
-    //logger('The "data to append" was appended to file!');
   });
 };
 
