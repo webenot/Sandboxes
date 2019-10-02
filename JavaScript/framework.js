@@ -16,24 +16,69 @@ const events = require('events');
 // Create a hash and turn it into the sandboxed context which will be
 // the global context of an application
 const context = {
-  module: {}, console,
+  module: {}, console, setTimeout, setInterval, clearInterval,
   require: name => {
     if (name === 'fs') {
       console.log('Module fs is restricted');
       return null;
     }
-    return require(name);
+    let util;
+    try {
+      util = require(`./utils/${name}`);
+    } catch (e) {
+      util = require(name);
+    }
+    console.log(`required ${name}`);
+    return util;
   }
 };
 
 context.global = context;
+
 const sandbox = vm.createContext(context);
+
+const contextBefore = context;
 
 // Prepare lambda context injection
 const api = { timers,  events };
 
 // Read an application source code from the file
-const fileName = './application.js';
+const args = process.argv.slice(2);
+let appName = args[0];
+let fileName = '';
+if (appName) {
+  if (appName.indexOf('.js') === -1) {
+    let files;
+    try {
+      files = fs.readdirSync(`./${appName}`, { withFileTypes: true, });
+      fileName = `./${appName}/index.js`;
+    } catch (e) {
+      fileName = `${appName}.js`;
+      files = fs.readFileSync(`./${fileName}`);
+      if (!files) {
+        fileName = './application.js';
+      }
+    }
+  } else {
+    fs.readdirSync(`./${appName}`, { withFileTypes: true, });
+  }
+} else {
+  fileName = './application.js';
+  appName = 'application';
+}
+
+// Intercept console.log
+const logger = context.console.log;
+context.console.log = (...args) => {
+  const time = new Date();
+  const message = [...args].join(' ');
+  const logMessage = `${appName} ${time.toISOString()} ${message}`;
+  logger(logMessage);
+  fs.appendFile('log.txt', `${logMessage}\n`, (err) => {
+    if (err) throw err;
+  });
+};
+
 fs.readFile(fileName, 'utf8', (err, src) => {
   // We need to handle errors here
 
@@ -54,7 +99,49 @@ fs.readFile(fileName, 'utf8', (err, src) => {
     const f = script.runInNewContext(sandbox, { timeout: EXECUTION_TIMEOUT });
     f(api);
     const exported = sandbox.module.exports;
-    console.dir({ exported });
+    const result = {};
+    for (const exp in exported) {
+      if (Object.prototype.hasOwnProperty.call(exported, exp)) {
+        const type = typeof exported[exp];
+
+        result[exp] = {
+          data: exported[exp],
+          type,
+        };
+        if (type === 'function') {
+          result[exp].argsLength = exported[exp].length;
+          result[exp].code = exported[exp] + '';
+        }
+      }
+    }
+    console.dir({ exported: result });
+
+    // Check the context changing
+    const contextAfter = exported.global;
+    console.dir({ contextBefore }, { depth: 2 });
+    console.dir({ contextAfter }, { depth: 2 });
+
+    const beforeContextKeys = Object.keys(contextBefore);
+    const afterContextKeys = Object.keys(contextAfter);
+    const difference = {
+      deleted: [],
+      added: [],
+    };
+    for (let i = 0, length = beforeContextKeys.length; i < length; i++) {
+      if (afterContextKeys.indexOf(beforeContextKeys[i]) === -1) {
+        difference.deleted.push(beforeContextKeys[i]);
+      }
+    }
+    for (let i = 0, length = afterContextKeys.length; i < length; i++) {
+      if (beforeContextKeys.indexOf(afterContextKeys[i]) === -1) {
+        difference.added.push(afterContextKeys[i]);
+      }
+    }
+    if (!difference.added.length && !difference.deleted.length) {
+      console.log('Context was not changed');
+    } else {
+      console.dir({ difference }, { depth: 2 });
+    }
   } catch (e) {
     console.dir(e);
     console.log('Execution timeout');

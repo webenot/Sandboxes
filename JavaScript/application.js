@@ -6,14 +6,44 @@
 
 const fs = require('fs');
 const net = require('net');
+const crypto = require('crypto');
 
 // Print from the global context of application module
 console.log('From application global context');
 console.dir({ fs, net }, { depth: 1 });
-console.dir({ global }, { depth: 1 });
+
+// Print data from global context with types
+const printResult = {};
+for (const data in global) {
+  if (Object.prototype.hasOwnProperty.call(global, data)) {
+    printResult[data] = {
+      type: typeof global[data],
+      value: global[data],
+    };
+  }
+}
+console.dir({ global: printResult }, { depth: 2 });
+
 console.dir({ api }, { depth: 2 });
 
-module.exports = () => {
-  // Print from the exported function context
-  console.log('From application exported function');
+setTimeout(() => {
+  console.log('setTimeout added to context');
+}, 300);
+
+let counter = 0;
+const timer = setInterval(() => {
+  console.log('setInterval added to context');
+  counter++;
+  if (counter > 3) clearInterval(timer);
+}, 300);
+
+require('util1');
+
+module.exports = {
+  log: () => {
+    // Print from the exported function context
+    console.log('From application exported function');
+  },
+  hash: crypto.createHash('sha256').digest('hex'),
+  global,
 };
