@@ -34,7 +34,10 @@ const context = {
 };
 
 context.global = context;
+
 const sandbox = vm.createContext(context);
+
+const contextBefore = context;
 
 // Prepare lambda context injection
 const api = { timers,  events };
@@ -63,6 +66,18 @@ if (appName) {
   fileName = './application.js';
   appName = 'application';
 }
+
+// Intercept console.log
+const logger = context.console.log;
+context.console.log = (...args) => {
+  const time = new Date();
+  const message = [...args].join(' ');
+  const logMessage = `${appName} ${time.toISOString()} ${message}`;
+  logger(logMessage);
+  fs.appendFile('log.txt', `${logMessage}\n`, (err) => {
+    if (err) throw err;
+  });
+};
 
 fs.readFile(fileName, 'utf8', (err, src) => {
   // We need to handle errors here
@@ -100,6 +115,33 @@ fs.readFile(fileName, 'utf8', (err, src) => {
       }
     }
     console.dir({ exported: result });
+
+    // Check the context changing
+    const contextAfter = exported.global;
+    console.dir({ contextBefore }, { depth: 2 });
+    console.dir({ contextAfter }, { depth: 2 });
+
+    const beforeContextKeys = Object.keys(contextBefore);
+    const afterContextKeys = Object.keys(contextAfter);
+    const difference = {
+      deleted: [],
+      added: [],
+    };
+    for (let i = 0, length = beforeContextKeys.length; i < length; i++) {
+      if (afterContextKeys.indexOf(beforeContextKeys[i]) === -1) {
+        difference.deleted.push(beforeContextKeys[i]);
+      }
+    }
+    for (let i = 0, length = afterContextKeys.length; i < length; i++) {
+      if (beforeContextKeys.indexOf(afterContextKeys[i]) === -1) {
+        difference.added.push(afterContextKeys[i]);
+      }
+    }
+    if (!difference.added.length && !difference.deleted.length) {
+      console.log('Context was not changed');
+    } else {
+      console.dir({ difference }, { depth: 2 });
+    }
   } catch (e) {
     console.dir(e);
     console.log('Execution timeout');
@@ -109,18 +151,6 @@ fs.readFile(fileName, 'utf8', (err, src) => {
   // We can access a link to exported interface from sandbox.module.exports
   // to execute, save to the cache, print to console, etc.
 });
-
-// Intercept console.log
-const logger = context.console.log;
-context.console.log = (...args) => {
-  const time = new Date();
-  const message = [...args].join(' ');
-  const logMessage = `${appName} ${time.toISOString()} ${message}`;
-  logger(logMessage);
-  fs.appendFile('log.txt', `${logMessage}\n`, (err) => {
-    if (err) throw err;
-  });
-};
 
 process.on('uncaughtException', err => {
   console.log('Unhandled exception: ' + err);
