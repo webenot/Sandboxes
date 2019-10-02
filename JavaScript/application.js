@@ -6,6 +6,7 @@
 
 const fs = require('fs');
 const net = require('net');
+const crypto = require('crypto');
 
 // Print from the global context of application module
 console.log('From application global context');
@@ -26,7 +27,10 @@ const timer = setInterval(() => {
 
 require('util1');
 
-module.exports = () => {
-  // Print from the exported function context
-  console.log('From application exported function');
+module.exports = {
+  log: () => {
+    // Print from the exported function context
+    console.log('From application exported function');
+  },
+  hash: crypto.createHash('sha256').digest('hex'),
 };
